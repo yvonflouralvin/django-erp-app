@@ -16,8 +16,31 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.contrib import admin
+from django.urls import path, include
+
+from pathlib import Path
+import os  
+import json
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # path('apps/polls/', include('polls.urls')),
+    path('admin/', admin.site.urls), 
+    path('apps/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('apps/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), 
+
+    path('apps/core/', include("core.urls")),
+    path('apps/graphql/', include("graphql.urls")),
 ]
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Loading Manifest
+manifest_file = open("/configs/manifest.json")
+manifest = json.load(manifest_file) 
+addons = manifest['addons']
+
+for index, app in enumerate(addons):
+    urlpatterns.insert(index, path(f'apps/{app['name']}/', include(f'{app['name']}.urls')))

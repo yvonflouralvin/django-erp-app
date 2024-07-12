@@ -13,14 +13,21 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 import sys
-
+from datetime import timedelta
+import json
 
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-sys.path.append(os.path.join(Path(__file__).resolve().parent.parent.parent, "addons"))
+# Loading Manifest
+manifest_file = open("/configs/manifest.json")
+manifest = json.load(manifest_file) 
+
+addons = manifest['addons']
+
+sys.path.append("/addons")
 
 
 # Quick-start development settings - unsuitable for production
@@ -32,22 +39,40 @@ SECRET_KEY = 'django-insecure-yr58e(y&=og5(&2^or&%y=)6d6ngb_-fx)_7cpdqeuhv7sbpa5
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "https://erp.yvonflour.com",
+    "https://erp-bk.yvonflour.com",
+    "erp.yvonflour.com",
+    "erp-bk.yvonflour.com",
+]
 
+CORS_ALLOWED_ALL_ORIGINS = True
 
+CORS_ALLOWED_ORIGINS = [
+    "https://erp.yvonflour.com",
+    "https://erp-bk.yvonflour.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://erp.yvonflour.com",
+    "https://erp-bk.yvonflour.com",
+]
 # Application definition
-
 INSTALLED_APPS = [
+    'core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',  
-    'estate'
+    'rest_framework',
+    'corsheaders', 
+    'rest_framework_simplejwt'
 ]   
- 
 
+for index, addon in enumerate(addons):
+    INSTALLED_APPS.append(f'{addon['name']}')  
 
 
 MIDDLEWARE = [
@@ -58,6 +83,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
 ]
 
 ROOT_URLCONF = 'erp.urls'
@@ -85,12 +112,35 @@ WSGI_APPLICATION = 'erp.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+   'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ["POSTGRES_DB"],
+        'USER': os.environ["POSTGRES_USER"],
+        'PASSWORD': os.environ["POSTGRES_PASSWORD"],
+        'HOST': os.environ["POSTGRES_HOST"],
+        'PORT': os.environ["POSTGRES_PORT"]
     }
 }
 
+# put on your settings.py file below INSTALLED_APPS
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+APPEND_SLASH=False
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME': timedelta(days=30),
+    'SLIDING_TOKEN_REFRESH_LIFETIME_LATE_USER': timedelta(days=1),
+    'SLIDING_TOKEN_LIFETIME_LATE_USER': timedelta(days=30),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
